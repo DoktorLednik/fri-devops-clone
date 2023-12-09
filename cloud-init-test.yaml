@@ -1,0 +1,55 @@
+#cloud-config
+
+#package_update: true
+#packages:
+#  - npm
+
+runcmd:
+  #- curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+  - curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+  - curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  - echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+  - echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+  - apt-get update
+  - apt-get install -y npm
+  - apt-get install -y nodejs
+  - apt-get install -y mongodb-org
+
+  # Start MongoDB service
+  - systemctl start mongod
+
+  # Enable MongoDB service to start on boot
+  - systemctl enable mongod
+
+  # Clone Git repository
+  - git clone https://DoktorLednik:XXXXX@github.com/UL-FRI-DevOps-WebDevelopment/LP-doktorlednik.git /home/ubuntu/LP-doktorlednik
+
+  # Change to the directory of the cloned repository
+  - cd /home/ubuntu/LP-doktorlednik
+
+  # Install npm packages based on package.json
+  - npm install
+
+  ## Run project
+  #- node server.js
+
+  # Create the systemd service file
+  - echo "[Unit]" > /etc/systemd/system/fri-project.service
+  - echo "Description=FRI devops project" >> /etc/systemd/system/fri-project.service
+  - echo "Documentation=Not available yet" >> /etc/systemd/system/fri-project.service
+  - echo "" >> /etc/systemd/system/fri-project.service
+  - echo "[Service]" >> /etc/systemd/system/fri-project.service
+  - echo "ExecStart=/usr/bin/node /home/ubuntu/LP-doktorlednik/server.js" >> /etc/systemd/system/fri-project.service
+  - echo "Restart=always" >> /etc/systemd/system/fri-project.service
+  - echo "User=ubuntu" >> /etc/systemd/system/fri-project.service
+  - echo "Environment=MONGODB_URI_LOCAL=mongodb://localhost:27017/key-management" >> /etc/systemd/system/fri-project.service
+  - echo "" >> /etc/systemd/system/fri-project.service
+  - echo "[Install]" >> /etc/systemd/system/fri-project.service
+  - echo "WantedBy=default.target" >> /etc/systemd/system/fri-project.service
+
+  # Reload systemd to pick up the new service file
+  - systemctl daemon-reload
+
+  # Start and enable the service
+  - systemctl start fri-project
+  - systemctl enable fri-project
